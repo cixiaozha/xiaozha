@@ -109,7 +109,7 @@
 
     // 鼠标按下时开始拖动
     imageContainer.addEventListener('mousedown', (e) => {
-      if (isScaling) return; // 如果正在缩放，不执行拖动
+      if (e.button !== 0) return; // 仅响应左键点击
       isDragging = true;
       startX = e.clientX;
       startY = e.clientY;
@@ -154,7 +154,7 @@
 
     // 触摸屏适配 - 触摸移动时改变图片的位置或缩放
     document.addEventListener('touchmove', (e) => {
-      if (isDragging && !isScaling && e.touches.length === 1) {
+      if (e.touches.length === 1 && !isScaling) {
         const touch = e.touches[0];
         const left = offsetX + (touch.clientX - startX);
         const top = offsetY + (touch.clientY - startY);
@@ -168,7 +168,7 @@
         zoomImage(scaleFactor);
         initialDistance = newDistance;
       }
-      e.preventDefault();
+      e.preventDefault(); // 阻止默认行为，避免页面滚动等影响
     });
 
     // 触摸屏适配 - 触摸结束时停止拖动或缩放
