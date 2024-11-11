@@ -33,6 +33,7 @@
       z-index: 2;
       cursor: grab;
       touch-action: none;
+      transition: opacity 0.3s ease; /* 添加透明度过渡效果 */
     }
 
     .interactive-image {
@@ -86,6 +87,36 @@
     let clickCount = 0;
     const maxClicks = 10;
 
+    // 检查图片靠近边界时调整透明度
+    function updateOpacity() {
+      const containerRect = imageContainer.getBoundingClientRect();
+      const windowWidth = window.innerWidth;
+      const windowHeight = window.innerHeight;
+
+      // 设置距离边缘的淡出区域为6%
+      const edgeThreshold = 0.06;
+      const edgeWidth = windowWidth * edgeThreshold;
+      const edgeHeight = windowHeight * edgeThreshold;
+
+      // 计算透明度
+      let opacity = 1;
+
+      if (containerRect.left < edgeWidth) {
+        opacity = Math.min(opacity, containerRect.left / edgeWidth);
+      }
+      if (containerRect.top < edgeHeight) {
+        opacity = Math.min(opacity, containerRect.top / edgeHeight);
+      }
+      if (windowWidth - containerRect.right < edgeWidth) {
+        opacity = Math.min(opacity, (windowWidth - containerRect.right) / edgeWidth);
+      }
+      if (windowHeight - containerRect.bottom < edgeHeight) {
+        opacity = Math.min(opacity, (windowHeight - containerRect.bottom) / edgeHeight);
+      }
+
+      image2.style.opacity = opacity;
+    }
+
     // 添加 touchstart 监听
     imageContainer.addEventListener('touchstart', (e) => {
       if (e.touches.length === 1) { // 单指操作
@@ -131,6 +162,9 @@
         const top = offsetY + (e.touches[0].clientY - touchStartY);
         imageContainer.style.left = `${left}px`;
         imageContainer.style.top = `${top}px`;
+
+        // 更新透明度
+        updateOpacity();
       }
 
       e.preventDefault();
