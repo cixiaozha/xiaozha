@@ -41,6 +41,7 @@
       max-width: 100%;
       transition: transform 0.3s ease, opacity 0.3s ease;
       display: block;
+      transform-origin: center center;
     }
   </style>
 </head>
@@ -57,13 +58,16 @@
     const imageContainer = document.getElementById('image-container');
     const minScale = 0.02;
     const maxScale = 2;
-    let scale = minScale;
+    let scale = 0.05; // 初始设置为原始大小的5%
     let isDragging = false;
     let startX, startY, offsetX, offsetY;
     let touchStartX, touchStartY, touchStartTime;
 
     let clickCount = 0;
     const maxClicks = 10;
+
+    // 设置初始缩放比例
+    image2.style.transform = `scale(${scale})`;
 
     // 添加 touchstart 监听
     imageContainer.addEventListener('touchstart', (e) => {
@@ -87,7 +91,7 @@
       if (timeDiff < 300 && moveDistance < 10) {
         // 视为点击事件
         clickCount++;
-        const scaleFactor = Math.min(minScale + clickCount * 0.1, maxScale);
+        const scaleFactor = Math.min(0.05 + clickCount * 0.1, maxScale);
         image2.style.transform = `scale(${scaleFactor})`;
 
         if (clickCount >= maxClicks) {
