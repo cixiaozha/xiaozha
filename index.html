@@ -32,28 +32,18 @@
     
     /* 图片2容器 */
     .image-container {
-      position: relative;
+      position: absolute; /* 绝对定位容器 */
       z-index: 2;
+      cursor: grab; /* 提示图片可以被拖动 */
     }
     
     /* 图片2的样式 */
     .interactive-image {
-      width: 200px; /* 图片2的初始宽度 */
+      width: auto; /* 让图片宽度自适应 */
+      height: auto; /* 让图片高度自适应 */
+      max-width: 100%; /* 限制图片的最大宽度 */
       transition: transform 0.3s ease; /* 平滑过渡效果 */
-    }
-    
-    /* 点击小点 */
-    .click-point {
-      position: absolute;
-      top: -100%;  /* 向上移动2% */
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 30px;
-      height: 30px;
-      border-radius: 50%;
-      background-color: rgba(255, 255, 255, 0.8);
-      z-index: 3;
-      cursor: pointer;
+      display: block; /* 移除图片框 */
     }
     
     /* 更换图片按钮 */
@@ -80,10 +70,9 @@
   <!-- 背景图片 -->
   <div class="background-image"></div>
 
-  <!-- 图片2和点击点 -->
-  <div class="image-container">
-    <img src="path_to_image2.jpg" alt="Image 2" id="image2" class="interactive-image">
-    <div class="click-point" onclick="handleClick()"></div>
+  <!-- 图片2 -->
+  <div class="image-container" id="image-container">
+    <img src="path_to_image2.jpg" alt="Image 2" id="image2" class="interactive-image" onclick="handleClick()">
   </div>
 
   <!-- 上传图片按钮 -->
@@ -96,17 +85,48 @@
     let clickCount = 0;
     const maxClicks = 10;
     const image2 = document.getElementById('image2');
+    const imageContainer = document.getElementById('image-container');
+    const minScale = 0.02; // 最小缩放比例
+    const maxScale = 2; // 最大缩放比例
 
+    let isDragging = false;
+    let offsetX, offsetY;
+
+    // 点击图片放大缩小的逻辑
     function handleClick() {
       clickCount++;
-      if (clickCount <= maxClicks) {
-        const scale = 1 + clickCount * 0.1;
-        image2.style.transform = `scale(${scale})`;
-      } else {
+      const scale = Math.min(minScale + clickCount * 0.1, maxScale);
+      image2.style.transform = `scale(${scale})`;
+
+      if (clickCount >= maxClicks) {
         clickCount = 0;
-        image2.style.transform = 'scale(1)';
+        image2.style.transform = `scale(${minScale})`;
       }
     }
+
+    // 鼠标按下时开始拖动
+    imageContainer.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      offsetX = e.clientX - imageContainer.offsetLeft;
+      offsetY = e.clientY - imageContainer.offsetTop;
+      imageContainer.style.cursor = 'grabbing'; // 修改为抓取状态
+    });
+
+    // 鼠标移动时改变图片的位置
+    document.addEventListener('mousemove', (e) => {
+      if (isDragging) {
+        const left = e.clientX - offsetX;
+        const top = e.clientY - offsetY;
+        imageContainer.style.left = `${left}px`;
+        imageContainer.style.top = `${top}px`;
+      }
+    });
+
+    // 鼠标松开时停止拖动
+    document.addEventListener('mouseup', () => {
+      isDragging = false;
+      imageContainer.style.cursor = 'grab'; // 恢复为抓取状态
+    });
 
     // 更换图片的函数
     function updateImage() {
@@ -116,6 +136,8 @@
         const reader = new FileReader();
         reader.onload = function (e) {
           image2.src = e.target.result;
+          // 更新图片后，设置为最小比例（2%）
+          image2.style.transform = `scale(${minScale})`;
         };
         reader.readAsDataURL(file);
       }
