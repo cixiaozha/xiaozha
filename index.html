@@ -93,8 +93,12 @@
     let isDragging = false;
     let offsetX, offsetY;
 
+    let isScaling = false; // 用来判断是否正在缩放
+
     // 点击图片放大缩小的逻辑
     image2.addEventListener('click', () => {
+      if (isScaling) return; // 如果正在缩放，不执行点击事件
+
       clickCount++;
       const scale = Math.min(minScale + clickCount * 0.1, maxScale);
       image2.style.transform = `scale(${scale})`;
@@ -103,10 +107,16 @@
         clickCount = 0;
         image2.style.transform = `scale(${minScale})`;
       }
+
+      // 在缩放时禁用拖动
+      isScaling = true;
+      setTimeout(() => { isScaling = false; }, 300); // 确保缩放动画完成后恢复
     });
 
     // 鼠标按下时开始拖动
     imageContainer.addEventListener('mousedown', (e) => {
+      if (isScaling) return; // 如果正在缩放，不执行拖动
+
       isDragging = true;
       offsetX = e.clientX - imageContainer.offsetLeft;
       offsetY = e.clientY - imageContainer.offsetTop;
@@ -115,7 +125,7 @@
 
     // 鼠标移动时改变图片的位置
     document.addEventListener('mousemove', (e) => {
-      if (isDragging) {
+      if (isDragging && !isScaling) {
         const left = e.clientX - offsetX;
         const top = e.clientY - offsetY;
         imageContainer.style.left = `${left}px`;
@@ -131,6 +141,8 @@
 
     // 触摸屏适配 - 触摸开始时开始拖动
     imageContainer.addEventListener('touchstart', (e) => {
+      if (isScaling) return; // 如果正在缩放，不执行拖动
+
       isDragging = true;
       const touch = e.touches[0];
       offsetX = touch.clientX - imageContainer.offsetLeft;
@@ -141,7 +153,7 @@
 
     // 触摸屏适配 - 触摸移动时改变图片的位置
     document.addEventListener('touchmove', (e) => {
-      if (isDragging) {
+      if (isDragging && !isScaling) {
         const touch = e.touches[0];
         const left = touch.clientX - offsetX;
         const top = touch.clientY - offsetY;
