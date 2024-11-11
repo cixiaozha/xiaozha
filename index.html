@@ -35,6 +35,7 @@
       position: absolute; /* 绝对定位容器 */
       z-index: 2;
       cursor: grab; /* 提示图片可以被拖动 */
+      touch-action: none; /* 防止触摸事件被默认行为覆盖 */
     }
     
     /* 图片2的样式 */
@@ -72,7 +73,7 @@
 
   <!-- 图片2 -->
   <div class="image-container" id="image-container">
-    <img src="path_to_image2.jpg" alt="Image 2" id="image2" class="interactive-image" onclick="handleClick()">
+    <img src="path_to_image2.jpg" alt="Image 2" id="image2" class="interactive-image">
   </div>
 
   <!-- 上传图片按钮 -->
@@ -93,7 +94,7 @@
     let offsetX, offsetY;
 
     // 点击图片放大缩小的逻辑
-    function handleClick() {
+    image2.addEventListener('click', () => {
       clickCount++;
       const scale = Math.min(minScale + clickCount * 0.1, maxScale);
       image2.style.transform = `scale(${scale})`;
@@ -102,7 +103,7 @@
         clickCount = 0;
         image2.style.transform = `scale(${minScale})`;
       }
-    }
+    });
 
     // 鼠标按下时开始拖动
     imageContainer.addEventListener('mousedown', (e) => {
@@ -135,6 +136,7 @@
       offsetX = touch.clientX - imageContainer.offsetLeft;
       offsetY = touch.clientY - imageContainer.offsetTop;
       imageContainer.style.cursor = 'grabbing'; // 修改为抓取状态
+      e.preventDefault(); // 阻止默认的触摸行为，防止干扰
     });
 
     // 触摸屏适配 - 触摸移动时改变图片的位置
@@ -146,6 +148,7 @@
         imageContainer.style.left = `${left}px`;
         imageContainer.style.top = `${top}px`;
       }
+      e.preventDefault(); // 阻止默认行为，避免页面滚动等影响
     });
 
     // 触摸屏适配 - 触摸结束时停止拖动
