@@ -39,7 +39,7 @@
       width: auto;
       height: auto;
       max-width: 100%;
-      transition: transform 0.3s ease, opacity 0.3s ease;
+      transition: transform 0.3s ease;
       display: block;
     }
 
@@ -65,7 +65,7 @@
   <div class="background-image"></div>
 
   <div class="image-container" id="image-container">
-    <img src="path_to_image2.jpg" alt="Image 2" id="image2" class="interactive-image">
+    <img src="" alt="Image 2" id="image2" class="interactive-image">
   </div>
 
   <label class="upload-btn">
@@ -75,94 +75,45 @@
 
   <script>
     const image2 = document.getElementById('image2');
-    const imageContainer = document.getElementById('image-container');
-    const minScale = 0.02;
-    const maxScale = 2;
-    let scale = minScale;
-    let isDragging = false;
-    let startX, startY, offsetX, offsetY;
-    let touchStartX, touchStartY, touchStartTime;
 
-    let clickCount = 0;
-    const maxClicks = 10;
-
-    // 添加 touchstart 监听
-    imageContainer.addEventListener('touchstart', (e) => {
-      if (e.touches.length === 1) { // 单指操作
-        touchStartX = e.touches[0].clientX;
-        touchStartY = e.touches[0].clientY;
-        touchStartTime = new Date().getTime();
-        isDragging = false;
-      }
-    });
-
-    // 添加 touchend 监听
-    imageContainer.addEventListener('touchend', (e) => {
-      const touchEndTime = new Date().getTime();
-      const timeDiff = touchEndTime - touchStartTime;
-      const moveDistance = Math.sqrt(
-        Math.pow(e.changedTouches[0].clientX - touchStartX, 2) +
-        Math.pow(e.changedTouches[0].clientY - touchStartY, 2)
-      );
-
-      if (timeDiff < 300 && moveDistance < 10) {
-        // 视为点击事件
-        clickCount++;
-        const scaleFactor = Math.min(minScale + clickCount * 0.1, maxScale);
-        image2.style.transform = `scale(${scaleFactor})`;
-
-        if (clickCount >= maxClicks) {
-          clickCount = 0;
-          image2.style.transform = `scale(${minScale})`;
+    // 页面加载时从服务器获取最新图片
+    async function loadLatestImage() {
+      try {
+        const response = await fetch('https://your-server.com/getLatestImage'); // 替换为实际接口
+        const data = await response.json();
+        if (data.imageUrl) {
+          image2.src = data.imageUrl;
         }
+      } catch (error) {
+        console.error("Error loading latest image:", error);
       }
-    });
+    }
 
-    // 触摸屏适配 - 滑动操作
-    imageContainer.addEventListener('touchmove', (e) => {
-      if (!isDragging && Math.sqrt(Math.pow(e.touches[0].clientX - touchStartX, 2) + Math.pow(e.touches[0].clientY - touchStartY, 2)) > 10) {
-        isDragging = true;
-        offsetX = imageContainer.offsetLeft;
-        offsetY = imageContainer.offsetTop;
-      }
-
-      if (isDragging) {
-        const left = offsetX + (e.touches[0].clientX - touchStartX);
-        const top = offsetY + (e.touches[0].clientY - touchStartY);
-        imageContainer.style.left = `${left}px`;
-        imageContainer.style.top = `${top}px`;
-
-        // 计算图片右边距与屏幕右边距的距离
-        const screenWidth = window.innerWidth;
-        const imageRightEdge = left + imageContainer.offsetWidth;
-        const distanceToRightEdge = screenWidth - imageRightEdge;
-
-        // 如果图片靠近右边缘，渐变消失
-        if (distanceToRightEdge < 10) {
-          const opacity = Math.max(0, distanceToRightEdge / 10); // 透明度根据距离变化
-          image2.style.opacity = opacity;
-        } else {
-          image2.style.opacity = 1; // 如果不靠近右边缘，恢复不透明
-        }
-      }
-
-      e.preventDefault();
-    });
-
-    // 更换图片的函数
-    function updateImage() {
+    // 上传新图片
+    async function updateImage() {
       const fileInput = document.getElementById('upload');
       const file = fileInput.files[0];
       if (file) {
-        const reader = new FileReader();
-        reader.onload = function (e) {
-          image2.src = e.target.result;
-          scale = minScale;
-          image2.style.transform = `scale(${scale})`;
-        };
-        reader.readAsDataURL(file);
+        const formData = new FormData();
+        formData.append("image", file);
+
+        try {
+          const response = await fetch('https://your-server.com/uploadImage', { // 替换为实际接口
+            method: 'POST',
+            body: formData
+          });
+          const data = await response.json();
+          if (data.success) {
+            image2.src = URL.createObjectURL(file); // 立即在前端更新图片
+          }
+        } catch (error) {
+          console.error("Error uploading image:", error);
+        }
       }
     }
+
+    // 页面加载时执行
+    loadLatestImage();
   </script>
 </body>
 </html>
