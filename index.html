@@ -39,7 +39,7 @@
       width: auto;
       height: auto;
       max-width: 100%;
-      transition: transform 0.3s ease, opacity 0.3s ease; /* 添加透明度过渡 */
+      transition: transform 0.3s ease;
       display: block;
     }
 
@@ -77,80 +77,66 @@
     const image2 = document.getElementById('image2');
     const imageContainer = document.getElementById('image-container');
     const minScale = 0.02;
+    const maxScale = 2;
+    let scale = minScale;
+    let isDragging = false;
+    let startX, startY, offsetX, offsetY;
+    let touchStartX, touchStartY, touchStartTime;
+
     let clickCount = 0;
     const maxClicks = 10;
 
-    // 允许图片靠近边缘时逐渐透明消失
-    function updateOpacity() {
-      const containerRect = imageContainer.getBoundingClientRect();
-      const windowWidth = window.innerWidth;
-      const windowHeight = window.innerHeight;
-
-      const horizontalDistance = Math.min(containerRect.left, windowWidth - containerRect.right);
-      const verticalDistance = Math.min(containerRect.top, windowHeight - containerRect.bottom);
-
-      // 距离边缘小于100px时逐渐消失
-      const edgeDistance = 100;
-      let opacity = 1;
-
-      if (horizontalDistance < edgeDistance || verticalDistance < edgeDistance) {
-        const minDistance = Math.min(horizontalDistance, verticalDistance);
-        opacity = Math.max(0, minDistance / edgeDistance);
-      }
-
-      image2.style.opacity = opacity;
-    }
-
-    // 图片点击放大缩小
-    image2.addEventListener('click', () => {
-      clickCount++;
-      const scaleFactor = minScale + clickCount * 0.1;
-      image2.style.transform = `scale(${scaleFactor})`;
-
-      if (clickCount >= maxClicks) {
-        clickCount = 0;
-        image2.style.transform = `scale(${minScale})`;
+    // 添加 touchstart 监听
+    imageContainer.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 1) { // 单指操作
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        touchStartTime = new Date().getTime();
+        isDragging = false;
       }
     });
 
-    // 滑动效果
-    let startX, startY, offsetX, offsetY;
-    let isDragging = false;
+    // 添加 touchend 监听
+    imageContainer.addEventListener('touchend', (e) => {
+      const touchEndTime = new Date().getTime();
+      const timeDiff = touchEndTime - touchStartTime;
+      const moveDistance = Math.sqrt(
+        Math.pow(e.changedTouches[0].clientX - touchStartX, 2) +
+        Math.pow(e.changedTouches[0].clientY - touchStartY, 2)
+      );
 
-    // 触摸开始
-    imageContainer.addEventListener('touchstart', (e) => {
-      if (e.touches.length === 1) {
+      if (timeDiff < 300 && moveDistance < 10) {
+        // 视为点击事件
+        clickCount++;
+        const scaleFactor = Math.min(minScale + clickCount * 0.1, maxScale);
+        image2.style.transform = `scale(${scaleFactor})`;
+
+        if (clickCount >= maxClicks) {
+          clickCount = 0;
+          image2.style.transform = `scale(${minScale})`;
+        }
+      }
+    });
+
+    // 触摸屏适配 - 滑动操作
+    imageContainer.addEventListener('touchmove', (e) => {
+      if (!isDragging && Math.sqrt(Math.pow(e.touches[0].clientX - touchStartX, 2) + Math.pow(e.touches[0].clientY - touchStartY, 2)) > 10) {
         isDragging = true;
-        const touch = e.touches[0];
-        startX = touch.clientX;
-        startY = touch.clientY;
         offsetX = imageContainer.offsetLeft;
         offsetY = imageContainer.offsetTop;
-        e.preventDefault();
       }
-    });
 
-    // 触摸移动
-    document.addEventListener('touchmove', (e) => {
       if (isDragging) {
-        const touch = e.touches[0];
-        const left = offsetX + (touch.clientX - startX);
-        const top = offsetY + (touch.clientY - startY);
+        const left = offsetX + (e.touches[0].clientX - touchStartX);
+        const top = offsetY + (e.touches[0].clientY - touchStartY);
         imageContainer.style.left = `${left}px`;
         imageContainer.style.top = `${top}px`;
-
-        // 更新透明度
-        updateOpacity();
-        e.preventDefault();
       }
+
+      e.preventDefault();
     });
 
-    // 触摸结束
-    document.addEventListener('touchend', () => {
-      isDragging = false;
-    });
-
-    // 更换图片
+    // 更换图片的函数
     function updateImage() {
       const fileInput = document.getElementById('upload');
       const file = fileInput.files[0];
@@ -158,8 +144,8 @@
         const reader = new FileReader();
         reader.onload = function (e) {
           image2.src = e.target.result;
-          image2.style.transform = `scale(${minScale})`;
-          image2.style.opacity = 1;
+          scale = minScale;
+          image2.style.transform = `scale(${scale})`;
         };
         reader.readAsDataURL(file);
       }
