@@ -33,6 +33,7 @@
       z-index: 2;
       cursor: grab;
       touch-action: none;
+      transition: transform 0.3s ease, left 0.3s ease, top 0.3s ease;
     }
 
     .interactive-image {
@@ -88,10 +89,12 @@
 
     // 添加 touchstart 监听
     imageContainer.addEventListener('touchstart', (e) => {
-      if (e.touches.length === 1) { // 单指操作
+      if (e.touches.length === 1) {
         touchStartX = e.touches[0].clientX;
         touchStartY = e.touches[0].clientY;
         touchStartTime = new Date().getTime();
+        offsetX = imageContainer.offsetLeft;
+        offsetY = imageContainer.offsetTop;
         isDragging = false;
       }
     });
@@ -115,6 +118,20 @@
           clickCount = 0;
           image2.style.transform = `scale(${minScale})`;
         }
+      } else {
+        // 松手后平滑回到可视区域
+        if (imageContainer.offsetLeft > window.innerWidth * 0.2) {
+          imageContainer.style.left = `${window.innerWidth * 0.2}px`;
+        }
+        if (imageContainer.offsetLeft + imageContainer.offsetWidth < window.innerWidth * 0.8) {
+          imageContainer.style.left = `${window.innerWidth * 0.8 - imageContainer.offsetWidth}px`;
+        }
+        if (imageContainer.offsetTop > window.innerHeight * 0.2) {
+          imageContainer.style.top = `${window.innerHeight * 0.2}px`;
+        }
+        if (imageContainer.offsetTop + imageContainer.offsetHeight < window.innerHeight * 0.8) {
+          imageContainer.style.top = `${window.innerHeight * 0.8 - imageContainer.offsetHeight}px`;
+        }
       }
     });
 
@@ -122,15 +139,16 @@
     imageContainer.addEventListener('touchmove', (e) => {
       if (!isDragging && Math.sqrt(Math.pow(e.touches[0].clientX - touchStartX, 2) + Math.pow(e.touches[0].clientY - touchStartY, 2)) > 10) {
         isDragging = true;
-        offsetX = imageContainer.offsetLeft;
-        offsetY = imageContainer.offsetTop;
       }
 
       if (isDragging) {
         const left = offsetX + (e.touches[0].clientX - touchStartX);
         const top = offsetY + (e.touches[0].clientY - touchStartY);
-        imageContainer.style.left = `${left}px`;
-        imageContainer.style.top = `${top}px`;
+        
+        // 超出屏幕边界时的“拉出”效果
+        const edgePadding = 50; // 允许超出的最大距离
+        imageContainer.style.left = `${Math.min(Math.max(left, -edgePadding), window.innerWidth - imageContainer.offsetWidth + edgePadding)}px`;
+        imageContainer.style.top = `${Math.min(Math.max(top, -edgePadding), window.innerHeight - imageContainer.offsetHeight + edgePadding)}px`;
       }
 
       e.preventDefault();
