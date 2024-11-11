@@ -85,24 +85,32 @@
   <script>
     const image2 = document.getElementById('image2');
     const imageContainer = document.getElementById('image-container');
-    const minScale = 0.05; // 最小缩放比例
+    const minScale = 0.02; // 最小缩放比例
     const maxScale = 2; // 最大缩放比例
     let scale = minScale; // 初始化缩放比例为最小值
     let isDragging = false;
     let startX, startY, offsetX, offsetY;
+    let touchStartX, touchStartY, touchStartTime;
 
     // 点击图片放大缩小的逻辑
     let clickCount = 0;
     const maxClicks = 10;
 
-    image2.addEventListener('click', () => {
-      clickCount++;
-      const scaleFactor = Math.min(minScale + clickCount * 0.1, maxScale);
-      image2.style.transform = `scale(${scaleFactor})`;
+    image2.addEventListener('click', (e) => {
+      const currentTime = new Date().getTime();
+      const timeDiff = currentTime - touchStartTime; // 计算点击与滑动的时间差
+      const moveDistance = Math.sqrt(Math.pow(e.clientX - touchStartX, 2) + Math.pow(e.clientY - touchStartY, 2)); // 计算位移距离
 
-      if (clickCount >= maxClicks) {
-        clickCount = 0;
-        image2.style.transform = `scale(${minScale})`;
+      // 判断是点击还是滑动
+      if (timeDiff < 300 && moveDistance < 10) { // 如果点击时间短且位移小，视为点击
+        clickCount++;
+        const scaleFactor = Math.min(minScale + clickCount * 0.1, maxScale);
+        image2.style.transform = `scale(${scaleFactor})`;
+
+        if (clickCount >= maxClicks) {
+          clickCount = 0;
+          image2.style.transform = `scale(${minScale})`;
+        }
       }
     });
 
@@ -137,8 +145,9 @@
     imageContainer.addEventListener('touchstart', (e) => {
       if (e.touches.length === 1) {
         isDragging = true;
-        startX = e.touches[0].clientX;
-        startY = e.touches[0].clientY;
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        touchStartTime = new Date().getTime(); // 记录触摸开始时间
         offsetX = imageContainer.offsetLeft;
         offsetY = imageContainer.offsetTop;
         imageContainer.style.cursor = 'grabbing'; // 修改为抓取状态
@@ -150,8 +159,8 @@
     document.addEventListener('touchmove', (e) => {
       if (isDragging) {
         const touch = e.touches[0];
-        const left = offsetX + (touch.clientX - startX);
-        const top = offsetY + (touch.clientY - startY);
+        const left = offsetX + (touch.clientX - touchStartX);
+        const top = offsetY + (touch.clientY - touchStartY);
         imageContainer.style.left = `${left}px`;
         imageContainer.style.top = `${top}px`;
       }
