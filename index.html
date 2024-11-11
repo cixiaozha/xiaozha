@@ -16,7 +16,7 @@
       align-items: center;
       background-color: black;
     }
-    
+
     /* 背景图片 */
     .background-image {
       position: absolute;
@@ -29,7 +29,7 @@
       background-position: center;
       z-index: 1;
     }
-    
+
     /* 图片2容器 */
     .image-container {
       position: absolute; /* 绝对定位容器 */
@@ -37,7 +37,7 @@
       cursor: grab; /* 提示图片可以被拖动 */
       touch-action: none; /* 防止触摸事件被默认行为覆盖 */
     }
-    
+
     /* 图片2的样式 */
     .interactive-image {
       width: auto; /* 让图片宽度自适应 */
@@ -46,7 +46,7 @@
       transition: transform 0.3s ease; /* 平滑过渡效果 */
       display: block; /* 移除图片框 */
     }
-    
+
     /* 更换图片按钮 */
     .upload-btn {
       position: absolute;
@@ -83,51 +83,46 @@
   </label>
 
   <script>
-    let clickCount = 0;
-    const maxClicks = 10;
     const image2 = document.getElementById('image2');
     const imageContainer = document.getElementById('image-container');
     const minScale = 0.02; // 最小缩放比例
     const maxScale = 2; // 最大缩放比例
-
+    let scale = minScale; // 初始化缩放比例为最小值
     let isDragging = false;
-    let offsetX, offsetY;
+    let isScaling = false;
+    let startX, startY, offsetX, offsetY;
 
-    let isScaling = false; // 用来判断是否正在缩放
+    // 双指缩放操作
+    let initialDistance = 0;
 
-    // 点击图片放大缩小的逻辑
-    image2.addEventListener('click', () => {
-      if (isScaling) return; // 如果正在缩放，不执行点击事件
+    // 计算两点间距离
+    function getDistance(touch1, touch2) {
+      return Math.sqrt(Math.pow(touch2.clientX - touch1.clientX, 2) + Math.pow(touch2.clientY - touch1.clientY, 2));
+    }
 
-      clickCount++;
-      const scale = Math.min(minScale + clickCount * 0.1, maxScale);
+    // 图片缩放
+    function zoomImage(scaleFactor) {
+      scale *= scaleFactor;
+      scale = Math.max(minScale, Math.min(maxScale, scale)); // 限制缩放比例
       image2.style.transform = `scale(${scale})`;
-
-      if (clickCount >= maxClicks) {
-        clickCount = 0;
-        image2.style.transform = `scale(${minScale})`;
-      }
-
-      // 在缩放时禁用拖动
-      isScaling = true;
-      setTimeout(() => { isScaling = false; }, 300); // 确保缩放动画完成后恢复
-    });
+    }
 
     // 鼠标按下时开始拖动
     imageContainer.addEventListener('mousedown', (e) => {
       if (isScaling) return; // 如果正在缩放，不执行拖动
-
       isDragging = true;
-      offsetX = e.clientX - imageContainer.offsetLeft;
-      offsetY = e.clientY - imageContainer.offsetTop;
-      imageContainer.style.cursor = 'grabbing'; // 修改为抓取状态
+      startX = e.clientX;
+      startY = e.clientY;
+      offsetX = imageContainer.offsetLeft;
+      offsetY = imageContainer.offsetTop;
+      imageContainer.style.cursor = 'grabbing';
     });
 
     // 鼠标移动时改变图片的位置
     document.addEventListener('mousemove', (e) => {
       if (isDragging && !isScaling) {
-        const left = e.clientX - offsetX;
-        const top = e.clientY - offsetY;
+        const left = offsetX + (e.clientX - startX);
+        const top = offsetY + (e.clientY - startY);
         imageContainer.style.left = `${left}px`;
         imageContainer.style.top = `${top}px`;
       }
@@ -136,37 +131,55 @@
     // 鼠标松开时停止拖动
     document.addEventListener('mouseup', () => {
       isDragging = false;
-      imageContainer.style.cursor = 'grab'; // 恢复为抓取状态
+      imageContainer.style.cursor = 'grab';
     });
 
     // 触摸屏适配 - 触摸开始时开始拖动
     imageContainer.addEventListener('touchstart', (e) => {
-      if (isScaling) return; // 如果正在缩放，不执行拖动
-
-      isDragging = true;
-      const touch = e.touches[0];
-      offsetX = touch.clientX - imageContainer.offsetLeft;
-      offsetY = touch.clientY - imageContainer.offsetTop;
-      imageContainer.style.cursor = 'grabbing'; // 修改为抓取状态
+      if (e.touches.length === 1) {
+        isDragging = true;
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        offsetX = imageContainer.offsetLeft;
+        offsetY = imageContainer.offsetTop;
+        imageContainer.style.cursor = 'grabbing';
+      }
+      // 双指缩放
+      if (e.touches.length === 2) {
+        initialDistance = getDistance(e.touches[0], e.touches[1]);
+        isScaling = true;
+      }
       e.preventDefault(); // 阻止默认的触摸行为，防止干扰
     });
 
-    // 触摸屏适配 - 触摸移动时改变图片的位置
+    // 触摸屏适配 - 触摸移动时改变图片的位置或缩放
     document.addEventListener('touchmove', (e) => {
-      if (isDragging && !isScaling) {
+      if (isDragging && !isScaling && e.touches.length === 1) {
         const touch = e.touches[0];
-        const left = touch.clientX - offsetX;
-        const top = touch.clientY - offsetY;
+        const left = offsetX + (touch.clientX - startX);
+        const top = offsetY + (touch.clientY - startY);
         imageContainer.style.left = `${left}px`;
         imageContainer.style.top = `${top}px`;
       }
-      e.preventDefault(); // 阻止默认行为，避免页面滚动等影响
+      
+      if (e.touches.length === 2) {
+        const newDistance = getDistance(e.touches[0], e.touches[1]);
+        const scaleFactor = newDistance / initialDistance;
+        zoomImage(scaleFactor);
+        initialDistance = newDistance;
+      }
+      e.preventDefault();
     });
 
-    // 触摸屏适配 - 触摸结束时停止拖动
-    document.addEventListener('touchend', () => {
-      isDragging = false;
-      imageContainer.style.cursor = 'grab'; // 恢复为抓取状态
+    // 触摸屏适配 - 触摸结束时停止拖动或缩放
+    document.addEventListener('touchend', (e) => {
+      if (e.touches.length < 2) {
+        isScaling = false;
+      }
+      if (e.touches.length === 0) {
+        isDragging = false;
+        imageContainer.style.cursor = 'grab';
+      }
     });
 
     // 更换图片的函数
@@ -178,7 +191,8 @@
         reader.onload = function (e) {
           image2.src = e.target.result;
           // 更新图片后，设置为最小比例（2%）
-          image2.style.transform = `scale(${minScale})`;
+          scale = minScale;
+          image2.style.transform = `scale(${scale})`;
         };
         reader.readAsDataURL(file);
       }
